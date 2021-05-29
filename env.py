@@ -73,7 +73,7 @@ class PyBattleshipEnv(py_environment.PyEnvironment):
             ships = [5, 4, 3, 3, 2]
 
         self._action_spec = array_spec.BoundedArraySpec(
-            shape=(2,), dtype=np.int32, minimum=0, maximum=9, name='action')
+            shape=(), dtype=np.int32, minimum=0, maximum=99, name='action')
 
         self._observation_spec = array_spec.BoundedArraySpec(
             shape=(10,10), dtype=np.int32, minimum=0, maximum=3, name='observation')
@@ -127,6 +127,8 @@ class PyBattleshipEnv(py_environment.PyEnvironment):
         return ts.restart(self._state)
 
     def _step(self, action):
+        if not isinstance(action, tuple):
+            action = [int(action // 10), int(action % 10)]
 
         if self._episode_ended:
             return self._reset()
