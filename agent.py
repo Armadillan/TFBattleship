@@ -19,7 +19,7 @@ from tf_agents.utils import common
 
 from env import PyBattleshipEnv
 
-NAME = "TEST8 - DQN"
+NAME = "TEST9"
 
 FC_LAYER_PARAMS = (100, 50)
 

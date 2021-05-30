@@ -64,7 +64,7 @@ class PyBattleshipEnv(py_environment.PyEnvironment):
             return not self.sunk
 
         def __repr__(self):
-            return f"{sum(self._status.values)}/{len(self._status)}"
+            return f"{sum(self._status.values())}/{len(self._status)}"
 
         def __len__(self):
             return len(self._status)
@@ -141,6 +141,10 @@ class PyBattleshipEnv(py_environment.PyEnvironment):
         return ts.restart(self._state)
 
     def _step(self, action):
+
+        if self._episode_ended:
+            return self._reset()
+
         if not isinstance(action, tuple):
             action = [int(action // 10), int(action % 10)]
 
@@ -157,9 +161,6 @@ class PyBattleshipEnv(py_environment.PyEnvironment):
                     action = [0, 0]
 
             self._already_taken_actions.append(action)
-
-        if self._episode_ended:
-            return self._reset()
 
         self._state[action[0], action[1]] = 1
 
