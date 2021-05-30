@@ -194,7 +194,21 @@ class Game:
 
 if __name__ == "__main__":
     from env import PyBattleshipEnv
+    import pickle
+    import time
     game = Game(PyBattleshipEnv())
     scores = game.main()
-    print(scores)
+    if scores:
+        print("Number of games played: ",
+            len(scores),
+            "\nAverage score: ",
+            sum(scores) / len(scores),
+            sep=""
+            )
+        tm = time.localtime()
+    with open(
+            f"{tm.tm_year}-{tm.tm_mon}-{tm.tm_mday}-"\
+                 + "{tm.tm_hour}_{tm.tm_min}_{tm.tm_sec}.pkl"
+            ) as file:
+                pickle.dump(scores, file)
 

@@ -3,7 +3,7 @@
 
 import numpy as np
 
-class Bot:
+class Alg1:
 
     def __init__(self, ships):
 
@@ -105,11 +105,11 @@ class Bot:
 
                     count = 1
                     up = y + 1
-                    while up < 10 and state[x, up] != 1:
+                    while up < 10 and not mask[x, up]:
                         up += 1
                         count += 1
                     down = y - 1
-                    while down >= 0 and state[x, down] != 1:
+                    while down >= 0 and not mask[x, down]:
                         down -= 1
                         count += 1
 
@@ -171,7 +171,7 @@ class Bot:
                         possible_moves[(x,y, 1)] = count
 
 
-
+        #TODO FIX THIS OPTIMIZATION
         # for move, count in possible_moves.items():
         #     for offset in range(1, count):
 
@@ -200,17 +200,7 @@ if __name__ == "__main__":
 
     ts = game.reset()
 
-    bot = Bot([5,4,3,3,2])
-
-    game._ships = [
-        PyBattleshipEnv.Ship((1,3), False, 5),
-        PyBattleshipEnv.Ship((9,5), False, 4),
-        PyBattleshipEnv.Ship((9,0), False, 3),
-        PyBattleshipEnv.Ship((7,2), False, 3),
-        PyBattleshipEnv.Ship((2,0), False, 2)
-        ]
-
-
+    bot = Alg1([5,4,3,3,2])
 
     scores = []
     while len(scores) < 1000:
