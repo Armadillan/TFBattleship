@@ -66,8 +66,14 @@ class PyBattleshipEnv(py_environment.PyEnvironment):
         def __repr__(self):
             return f"{sum(self._status.values)}/{len(self._status)}"
 
+        def __len__(self):
+            return len(self._status)
 
-    def __init__(self, ships = None):
+
+    def __init__(
+            self, ships = None,
+            skip_invalid_actions = False,
+            punish_invalid_actions = False):
 
         if ships is None:
             ships = [5, 4, 3, 3, 2]
@@ -81,6 +87,10 @@ class PyBattleshipEnv(py_environment.PyEnvironment):
         self._episode_ended = False
 
         self._state = np.zeros(shape=(10,10), dtype=np.int32)
+
+        self._already_taken_actions = []
+        self._skip_invalid_actions = skip_invalid_actions
+        self._punish_invalid_actions = punish_invalid_actions
 
         self._ships = []
 
@@ -123,12 +133,30 @@ class PyBattleshipEnv(py_environment.PyEnvironment):
         return self._observation_spec
 
     def _reset(self):
-        self.__init__()
+        self.__init__(
+            ships = [len(ship) for ship in self._ships],
+            skip_invalid_actions = self._skip_invalid_actions,
+            punish_invalid_actions=self._punish_invalid_actions
+            )
         return ts.restart(self._state)
 
     def _step(self, action):
         if not isinstance(action, tuple):
             action = [int(action // 10), int(action % 10)]
+
+        if self._punish_invalid_actions and action in self._already_taken_actions:
+            return ts.transition(self._state, -1)
+
+        if self._skip_invalid_actions:
+            while action in self._already_taken_actions:
+                if action[0] < 9:
+                    action = [action[0] + 1, action[1]]
+                elif action[1] < 9:
+                    action = [0, action[1] + 1]
+                else:
+                    action = [0, 0]
+
+            self._already_taken_actions.append(action)
 
         if self._episode_ended:
             return self._reset()
@@ -151,4 +179,5 @@ class PyBattleshipEnv(py_environment.PyEnvironment):
         return ts.termination(self._state, bool(res))
 
 if __name__ == "__main__":
-    utils.validate_py_environment(PyBattleshipEnv())
+    env = PyBattleshipEnv(skip_invalid_actions=True)
+    utils.validate_py_environment(env)

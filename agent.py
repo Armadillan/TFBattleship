@@ -7,6 +7,7 @@ import pickle
 import tensorflow as tf
 
 from tf_agents.environments import tf_py_environment
+from tf_agents.environments import wrappers
 from tf_agents.agents.dqn import dqn_agent
 from tf_agents.drivers import dynamic_step_driver, dynamic_episode_driver
 from tf_agents.metrics import tf_metrics
@@ -18,28 +19,31 @@ from tf_agents.utils import common
 
 from env import PyBattleshipEnv
 
-NAME = "TEST"
+NAME = "TEST8 - DQN"
 
-FC_LAYER_PARAMS = (100, 100)
+FC_LAYER_PARAMS = (100, 50)
 
-LEARNING_RATE = 1e-5 # Learning rate for optimizer
+LEARNING_RATE = 1e-9 # Learning rate for optimizer
 
 ACTIVATION_FN = tf.keras.activations.relu
 
 OPTIMIZER = tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE)
 LOSS_FN = common.element_wise_squared_loss
 
-BUFFER_MAX_LEN = 50
+BUFFER_MAX_LEN = 100
 BUFFER_BATCH_SIZE = 10
 
 COLLECTION_STEPS = 1
 NUM_EVAL_EPISODES = 10
-NUM_TRAINING_ITERATIONS = 10_000
+NUM_TRAINING_ITERATIONS = 20_000
 
 # Initial epsilon (chance for collection policy to pick random move)
 INITIAL_EPSILON = 0.99
-END_EPSILON = 0.01 # End epsilon
-EPSILON_DECAY_STEPS = 2000 # How many steps the epsilon should decay over
+END_EPSILON = 0.1 # End epsilon
+EPSILON_DECAY_STEPS = 18_000 # How many steps the epsilon should decay over
+
+SKIP_INVALID_ACTIONS = False
+PUNISH_INVALID_ACTIONS = True # Takes precedence over SKIP_INVALID_ACTIONS
 
 LOG_INTERVAL = 5 # How often to print progress to console
 EVAL_INTERVAL = 10 # How often to evaluate the agent's performence
@@ -47,8 +51,11 @@ EVAL_INTERVAL = 10 # How often to evaluate the agent's performence
 # Where to save checkpoints, policies and stats
 SAVE_DIR = os.path.join("..", "TFBattleship_DATA")
 
-train_py_env = PyBattleshipEnv()
-eval_py_env = PyBattleshipEnv()
+train_py_env = PyBattleshipEnv(skip_invalid_actions=SKIP_INVALID_ACTIONS)
+eval_py_env = PyBattleshipEnv(skip_invalid_actions=SKIP_INVALID_ACTIONS)
+
+train_py_env = wrappers.TimeLimit(train_py_env, duration=100)
+eval_py_env = wrappers.TimeLimit(eval_py_env, duration=100)
 
 train_env = tf_py_environment.TFPyEnvironment(train_py_env)
 eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
@@ -70,7 +77,7 @@ epsilon = tf.compat.v1.train.polynomial_decay(
     end_learning_rate=END_EPSILON
 )
 
-agent = dqn_agent.DdqnAgent(
+agent = dqn_agent.DqnAgent(
     time_step_spec=train_env.time_step_spec(),
     action_spec=train_env.action_spec(),
     q_network=q_net,
@@ -119,9 +126,11 @@ random_policy_driver = dynamic_step_driver.DynamicStepDriver(
 )
 
 avg_episode_len_metric = tf_metrics.AverageEpisodeLengthMetric()
+avg_return_metric = tf_metrics.AverageReturnMetric()
 
 eval_metrics = [
-    avg_episode_len_metric
+    avg_episode_len_metric,
+    avg_return_metric
 ]
 
 policy_saver = PolicySaver(agent.policy)
@@ -147,8 +156,10 @@ for i in range(max(int(BUFFER_MAX_LEN/COLLECTION_STEPS), 1)):
 eval_driver.run()
 
 avg_episode_len = avg_episode_len_metric.result().numpy()
+avg_return = avg_return_metric.result().numpy()
 
 episode_lengths = [avg_episode_len]
+returns = [avg_return]
 losses = []
 
 for metric in eval_metrics:
@@ -164,7 +175,6 @@ checkpointer = common.Checkpointer(
     network=q_net
 )
 
-print("Starting training")
 
 # MAIN TRAINING LOOP
 for _ in range(NUM_TRAINING_ITERATIONS):
@@ -194,12 +204,13 @@ for _ in range(NUM_TRAINING_ITERATIONS):
         # Runs evaluation driver
         eval_driver.run()
 
-        # Gets average  average return from metric
         avg_episode_len = avg_episode_len_metric.result().numpy()
+        avg_return = avg_return_metric.result().numpy()
 
         print(f'Average episode length: {avg_episode_len}')
 
         episode_lengths.append(avg_episode_len)
+        returns.append(avg_return)
 
         # Saves agent policy
         policy_saver.save(

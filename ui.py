@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import time
-import os
+# import time
+# import os
 
 import pygame
 import numpy as np
@@ -30,6 +30,8 @@ class Game:
     def main(self):
 
         ts = self.env.reset()
+
+        scores = []
 
         def state():
             try:
@@ -173,6 +175,8 @@ class Game:
                                             (y+1) * line_y_width + y * field_y_width <= mouse[1] <= \
                                             (y+1) * line_y_width + (y+1) * field_y_width:
                                     ts = self.env.step((x,y))
+                                    if ts.is_last():
+                                        scores.append(np.count_nonzero(state()))
 
 
                 win.fill(self.BACKGROUND_COLOR)
@@ -185,9 +189,12 @@ class Game:
 
         pygame.quit()
 
+        return scores
+
 
 if __name__ == "__main__":
     from env import PyBattleshipEnv
     game = Game(PyBattleshipEnv())
-    game.main()
+    scores = game.main()
+    print(scores)
 
