@@ -208,7 +208,7 @@ if __name__ == "__main__":
         tm = time.localtime()
     with open(
             f"{tm.tm_year}-{tm.tm_mon}-{tm.tm_mday}-"\
-                 + "{tm.tm_hour}_{tm.tm_min}_{tm.tm_sec}.pkl"
+                 + "{tm.tm_hour}_{tm.tm_min}_{tm.tm_sec}.pkl", "wb"
             ) as file:
                 pickle.dump(scores, file)
 
