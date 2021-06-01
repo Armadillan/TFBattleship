@@ -391,8 +391,11 @@ if __name__ == "__main__":
 
     bot = Bouncy([5,4,3,3,2])
 
+    # Bouncy averages 43.9
+    # Alg1 averages  41.8
+
     scores = []
-    while len(scores) < 10000:
+    while len(scores) < 20000:
         action = bot.action(ts)
         ts = game.step(action)
 
